@@ -128,6 +128,10 @@ export function renderDashboardHtml(data) {
         margin-top: 20px;
       }
 
+      .panel-wide {
+        margin-top: 20px;
+      }
+
       .panel {
         padding: 22px;
       }
@@ -161,7 +165,7 @@ export function renderDashboardHtml(data) {
 
       .bar {
         display: grid;
-        grid-template-columns: 90px 1fr 56px;
+        grid-template-columns: 118px 1fr 56px;
         align-items: center;
         gap: 12px;
         font-size: 0.92rem;
@@ -180,15 +184,22 @@ export function renderDashboardHtml(data) {
         background: linear-gradient(90deg, var(--accent-2), var(--accent));
       }
 
-      .jtbd-grid {
-        display: grid;
-        gap: 12px;
+      .jtbd-scroll {
+        overflow-x: auto;
+        padding-bottom: 6px;
       }
 
-      .jtbd-row {
-        display: grid;
-        grid-template-columns: 180px repeat(var(--columns), minmax(0, 1fr));
-        gap: 10px;
+      .jtbd-table {
+        width: 100%;
+        min-width: 980px;
+        border-collapse: separate;
+        border-spacing: 10px;
+        table-layout: fixed;
+      }
+
+      .jtbd-table th,
+      .jtbd-table td {
+        width: auto;
       }
 
       .jtbd-label, .jtbd-stage, .jtbd-card {
@@ -196,6 +207,7 @@ export function renderDashboardHtml(data) {
         border-radius: 16px;
         padding: 12px;
         background: rgba(255, 255, 255, 0.62);
+        vertical-align: top;
       }
 
       .jtbd-stage {
@@ -203,12 +215,22 @@ export function renderDashboardHtml(data) {
         color: var(--muted);
         text-transform: uppercase;
         letter-spacing: 0.08em;
+        text-align: center;
+        min-height: 56px;
+        line-height: 1.2;
+        white-space: normal;
       }
 
       .jtbd-card h4 {
         font-size: 1rem;
         margin-bottom: 8px;
         line-height: 1.2;
+        overflow-wrap: anywhere;
+      }
+
+      .jtbd-card p,
+      .jtbd-label p {
+        overflow-wrap: anywhere;
       }
 
       .jtbd-card ul, .run-list, .issue-list {
@@ -244,10 +266,6 @@ export function renderDashboardHtml(data) {
         .grid {
           grid-template-columns: 1fr;
         }
-
-        .jtbd-row {
-          grid-template-columns: 1fr;
-        }
       }
     </style>
   </head>
@@ -262,15 +280,15 @@ export function renderDashboardHtml(data) {
         <div class="stats" id="stats"></div>
       </section>
 
-      <div class="grid">
-        <section class="panel">
-          <div class="section-title">
-            <h2>JTBD Map</h2>
-            <span class="muted">Actors x stages</span>
-          </div>
-          <div id="jtbd-map"></div>
-        </section>
+      <section class="panel panel-wide">
+        <div class="section-title">
+          <h2>JTBD Map</h2>
+          <span class="muted">Actors x stages</span>
+        </div>
+        <div id="jtbd-map"></div>
+      </section>
 
+      <div class="grid">
         <section class="panel">
           <div class="section-title">
             <h2>Score History</h2>
@@ -329,38 +347,49 @@ export function renderDashboardHtml(data) {
         const stages = [...(data.jtbd?.stages || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
         const actors = data.jtbd?.actors || [];
         const jobs = data.jtbd?.jobs || [];
+        const actorColumnWidth = 240;
+        const stageColumnWidth = 220;
+        const tableMinWidth = actorColumnWidth + (stageColumnWidth * stages.length);
 
         root.innerHTML = \`
-          <div class="jtbd-grid" style="--columns: \${stages.length}">
-            <div class="jtbd-row">
-              <div class="jtbd-label muted">Actor</div>
-              \${stages.map((stage) => \`<div class="jtbd-stage">\${stage.name}</div>\`).join('')}
-            </div>
-            \${actors.map((actor) => {
-              return \`
-                <div class="jtbd-row">
-                  <div class="jtbd-label">
-                    <strong>\${actor.name}</strong>
-                    <p>\${actor.description || ''}</p>
-                  </div>
-                  \${stages.map((stage) => {
-                    const cellJobs = jobs.filter((job) => job.actor === actor.id && job.stage === stage.id);
-                    if (!cellJobs.length) {
-                      return '<div class="jtbd-card muted">No mapped job yet.</div>';
-                    }
+          <div class="jtbd-scroll">
+            <table class="jtbd-table" style="min-width: \${tableMinWidth}px;">
+              <colgroup>
+                <col style="width: \${actorColumnWidth}px;" />
+                \${stages.map(() => \`<col style="width: \${stageColumnWidth}px;" />\`).join('')}
+              </colgroup>
+              <thead>
+                <tr>
+                  <th class="jtbd-label muted">Actor</th>
+                  \${stages.map((stage) => \`<th class="jtbd-stage">\${stage.name}</th>\`).join('')}
+                </tr>
+              </thead>
+              <tbody>
+                \${actors.map((actor) => \`
+                  <tr>
+                    <td class="jtbd-label">
+                      <strong>\${actor.name}</strong>
+                      <p>\${actor.description || ''}</p>
+                    </td>
+                    \${stages.map((stage) => {
+                      const cellJobs = jobs.filter((job) => job.actor === actor.id && job.stage === stage.id);
+                      if (!cellJobs.length) {
+                        return '<td class="jtbd-card muted">No mapped job yet.</td>';
+                      }
 
-                    return \`<div class="jtbd-card">
-                      \${cellJobs.map((job) => \`
-                        <div>
-                          <h4>\${job.title}</h4>
-                          <p>\${job.description || ''}</p>
-                        </div>
-                      \`).join('<hr style="border:none;border-top:1px solid rgba(31,30,27,0.08);margin:10px 0;" />')}
-                    </div>\`;
-                  }).join('')}
-                </div>
-              \`;
-            }).join('')}
+                      return \`<td class="jtbd-card">
+                        \${cellJobs.map((job) => \`
+                          <div>
+                            <h4>\${job.title}</h4>
+                            <p>\${job.description || ''}</p>
+                          </div>
+                        \`).join('<hr style="border:none;border-top:1px solid rgba(31,30,27,0.08);margin:10px 0;" />')}
+                      </td>\`;
+                    }).join('')}
+                  </tr>
+                \`).join('')}
+              </tbody>
+            </table>
           </div>
         \`;
       }
