@@ -212,6 +212,7 @@ export async function runTestBatch({
   const git = getGitMetadata(root);
   const runner = runnerOverride || project?.browser?.runner || 'playwright-agent';
   const harness = project?.ai?.harness || {};
+  const subagentConfig = project?.ai?.subagents || {};
   const runPairs = [];
 
   for (const scenario of selectedScenarios) {
@@ -223,7 +224,7 @@ export async function runTestBatch({
   const executions = [];
 
   for (const pair of runPairs) {
-    const surface = runner === 'playwright-agent'
+    const surface = ['playwright-agent', 'chrome-devtools-agent'].includes(runner)
       ? await runPlaywrightScenario({
           root,
           project,
@@ -281,6 +282,9 @@ export async function runTestBatch({
       harness_primary: harness.primary || 'codex',
       harness_secondary: harness.secondary || null,
       harness_orchestration: harness.orchestration || 'single',
+      subagents_enabled: subagentConfig.enabled !== false,
+      subagent_execution: subagentConfig.execution || 'sequential',
+      max_reviewers: Number(subagentConfig.max_reviewers || 2),
     },
     dimensions,
     overall,
@@ -296,6 +300,7 @@ export async function runTestBatch({
       previousRun,
     ),
     results,
+    subagents: executions.flatMap((item) => item.surface.subagents || []),
     surface_details: executions.map((item) => item.surface),
     surfaces: executions.map((item) => ({
       scenario_id: item.scenario.id,
@@ -306,6 +311,7 @@ export async function runTestBatch({
       entry_url: item.surface.entryUrl,
       runner: item.surface.runner || runner,
       screenshots: item.surface.screenshots || item.surface.vision?.analyses?.map((analysis) => analysis.screenshot_path) || [],
+      subagent_count: (item.surface.subagents || []).length,
     })),
   };
 }

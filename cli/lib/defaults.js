@@ -34,6 +34,12 @@ export function createDefaultProjectConfig({
       fast_model: '',
       temperature: 0.7,
       scoring_temperature: 0.2,
+      subagents: {
+        enabled: true,
+        execution: 'sequential',
+        max_reviewers: 2,
+        persist_prompts: true,
+      },
       harness: {
         primary: harnessPrimary,
         secondary: harnessSecondary,
@@ -49,6 +55,7 @@ export function createDefaultProjectConfig({
       max_steps: 4,
       max_candidates: 12,
       channel: 'chrome',
+      cdp_url: 'http://127.0.0.1:9222',
     },
     vision: {
       enabled: true,

@@ -153,6 +153,7 @@ export function writeTestRun({
   const reportPath = join(runDir, 'report.md');
   const scoresPath = join(runDir, 'scores.json');
   const analysisPath = join(runDir, 'analysis.json');
+  const subagentsPath = join(runDir, 'subagents.json');
 
   mkdirSync(runDir, { recursive: true });
   writeJsonFile(scoresPath, {
@@ -167,6 +168,10 @@ export function writeTestRun({
     results: testRun.results,
     surfaces: testRun.surfaces,
     surface_details: testRun.surface_details || testRun.surfaces,
+  });
+  writeJsonFile(subagentsPath, {
+    metadata: testRun.metadata,
+    subagents: testRun.subagents || [],
   });
 
   const template = readFileSync(paths.testTemplatePath, 'utf-8');
@@ -224,6 +229,7 @@ export function writeTestRun({
     outcomes: testRun.outcomes,
     report_path: reportPath,
     scores_path: scoresPath,
+    subagents_path: subagentsPath,
   };
 
   writeJsonFile(join(runDir, 'manifest.json'), manifest);

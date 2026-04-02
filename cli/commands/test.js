@@ -21,12 +21,16 @@ export function registerTestCommand(program) {
     .option('--persona <personaId>', 'Run a specific persona by id')
     .option('--url <url>', 'Override the configured target URL')
     .option('--browser <browser>', 'Preferred browser adapter (currently informational only)', 'deterministic-http')
-    .option('--runner <runner>', 'Browser runner: playwright-agent or deterministic-http')
+    .option('--runner <runner>', 'Browser runner: playwright-agent, chrome-devtools-agent, or deterministic-http')
     .option('--record', 'Reserved for future session recording support')
     .option('--vision <provider>', 'Reserved for future vision-provider selection')
     .option('--harness <harness>', 'Primary harness: codex or claude')
     .option('--secondary-harness <harness>', 'Secondary harness for consensus analysis')
     .option('--orchestration <mode>', 'Harness orchestration: single or consensus')
+    .option('--cdp-url <url>', 'CDP endpoint for chrome-devtools-agent, e.g. http://127.0.0.1:9222')
+    .option('--subagents', 'Enable explicit planner/reviewer subagent metadata')
+    .option('--subagent-execution <mode>', 'Subagent execution: sequential or parallel')
+    .option('--max-reviewers <count>', 'Maximum reviewer subagents to consult')
     .option('--headed', 'Run the Playwright browser visibly instead of headless')
     .option('--ci', 'Emit machine-readable summary for CI')
     .option('--threshold <threshold>', 'Minimum acceptable overall score')
@@ -75,6 +79,28 @@ export function registerTestCommand(program) {
         state.project.ai = state.project.ai || {};
         state.project.ai.harness = state.project.ai.harness || {};
         state.project.ai.harness.orchestration = options.orchestration;
+      }
+
+      if (options.cdpUrl) {
+        state.project.browser = state.project.browser || {};
+        state.project.browser.cdp_url = options.cdpUrl;
+      }
+
+      if (options.subagents || options.subagentExecution || options.maxReviewers) {
+        state.project.ai = state.project.ai || {};
+        state.project.ai.subagents = state.project.ai.subagents || {};
+      }
+
+      if (options.subagents) {
+        state.project.ai.subagents.enabled = true;
+      }
+
+      if (options.subagentExecution) {
+        state.project.ai.subagents.execution = options.subagentExecution;
+      }
+
+      if (options.maxReviewers) {
+        state.project.ai.subagents.max_reviewers = Number(options.maxReviewers);
       }
 
       const runId = createRunId();

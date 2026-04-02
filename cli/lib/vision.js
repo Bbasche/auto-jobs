@@ -114,6 +114,7 @@ export async function analyzeSnapshotWithHarnesses({
     prompt,
     schema: VISION_SCHEMA,
     imagePaths: screenshotPath ? [screenshotPath] : [],
+    subagentType: 'reviewer',
   });
   let aggregate = aggregateVisionResults(results);
 

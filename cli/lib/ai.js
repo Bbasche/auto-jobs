@@ -194,6 +194,7 @@ export async function runAvailableHarnesses({
   schema,
   imagePaths = [],
   timeoutMs = Number(harnessConfig.timeout_ms || 20000),
+  subagentType = 'generic',
 }) {
   const requested = harnessConfig.orchestration === 'consensus'
     ? [harnessConfig.primary, harnessConfig.secondary].filter(Boolean)
@@ -205,22 +206,33 @@ export async function runAvailableHarnesses({
       continue;
     }
 
+    const startedAt = new Date().toISOString();
+    const model = harness === 'codex' ? harnessConfig.codex_model : harnessConfig.claude_model;
+
     try {
       results.push({
         harness,
+        subagent_type: subagentType,
+        model,
+        started_at: startedAt,
+        finished_at: new Date().toISOString(),
         output: await runHarnessStructured({
           harness,
           root,
           prompt,
           schema,
           imagePaths,
-          model: harness === 'codex' ? harnessConfig.codex_model : harnessConfig.claude_model,
+          model,
           timeoutMs,
         }),
       });
     } catch (error) {
       results.push({
         harness,
+        subagent_type: subagentType,
+        model,
+        started_at: startedAt,
+        finished_at: new Date().toISOString(),
         error: error instanceof Error ? error.message : String(error),
       });
     }

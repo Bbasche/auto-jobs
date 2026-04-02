@@ -175,7 +175,7 @@ export function registerInitCommand(program) {
     .option('--harness <harness>', 'Primary harness: codex or claude')
     .option('--secondary-harness <harness>', 'Secondary harness: codex or claude')
     .option('--orchestration <mode>', 'Harness orchestration: single or consensus')
-    .option('--runner <runner>', 'Browser runner: playwright-agent or deterministic-http')
+    .option('--runner <runner>', 'Browser runner: playwright-agent, chrome-devtools-agent, or deterministic-http')
     .option('--headed', 'Configure the default browser runner to show the browser window')
     .action(async (rawOptions) => {
       const options = {

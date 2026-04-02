@@ -7,6 +7,44 @@ function validateArray(value, label, errors) {
   return value;
 }
 
+function validateSetupSteps(steps, label, errors) {
+  if (!steps) {
+    return;
+  }
+
+  if (!Array.isArray(steps)) {
+    errors.push(`${label} must be an array when provided.`);
+    return;
+  }
+
+  const validActions = ['goto', 'click', 'fill', 'select', 'upload', 'press', 'assert', 'wait', 'check', 'uncheck', 'hover'];
+
+  steps.forEach((step, index) => {
+    if (!step?.action || !validActions.includes(step.action)) {
+      errors.push(`${label}[${index}].action must be one of: ${validActions.join(', ')}.`);
+      return;
+    }
+
+    if (['click', 'fill', 'select', 'upload', 'check', 'uncheck'].includes(step.action)) {
+      if (!(step.selector || step.label || step.placeholder || (step.role && step.name) || step.text)) {
+        errors.push(`${label}[${index}] needs a selector, label, placeholder, role+name, or text locator.`);
+      }
+    }
+
+    if (step.action === 'goto' && !(step.url || step.value)) {
+      errors.push(`${label}[${index}] must include url or value for goto actions.`);
+    }
+
+    if (['fill', 'select', 'press'].includes(step.action) && step.value === undefined && !Array.isArray(step.values)) {
+      errors.push(`${label}[${index}] must include value or values for ${step.action} actions.`);
+    }
+
+    if (step.action === 'upload' && !(step.path || Array.isArray(step.paths) || step.value)) {
+      errors.push(`${label}[${index}] must include path, paths, or value for upload actions.`);
+    }
+  });
+}
+
 export function validateProjectConfig(project) {
   const errors = [];
 
@@ -50,8 +88,23 @@ export function validateProjectConfig(project) {
     }
   }
 
-  if (project?.browser?.runner && !['deterministic-http', 'playwright-agent'].includes(project.browser.runner)) {
-    errors.push('project.browser.runner must be "deterministic-http" or "playwright-agent".');
+  if (project?.browser?.runner && !['deterministic-http', 'playwright-agent', 'chrome-devtools-agent'].includes(project.browser.runner)) {
+    errors.push('project.browser.runner must be "deterministic-http", "playwright-agent", or "chrome-devtools-agent".');
+  }
+
+  if (project?.browser?.cdp_url !== undefined && typeof project.browser.cdp_url !== 'string') {
+    errors.push('project.browser.cdp_url must be a string when provided.');
+  }
+
+  if (project?.ai?.subagents) {
+    if (project.ai.subagents.execution && !['sequential', 'parallel'].includes(project.ai.subagents.execution)) {
+      errors.push('project.ai.subagents.execution must be "sequential" or "parallel".');
+    }
+
+    const maxReviewers = Number(project.ai.subagents.max_reviewers);
+    if (project.ai.subagents.max_reviewers !== undefined && (!Number.isFinite(maxReviewers) || maxReviewers < 1)) {
+      errors.push('project.ai.subagents.max_reviewers must be a positive number.');
+    }
   }
 
   return errors;
@@ -127,6 +180,9 @@ export function validateScenarioConfig(scenarios) {
     if (!scenario?.id || !scenario?.name || !scenario?.target_job) {
       errors.push(`test-scenarios.scenarios[${index}] must include id, name, and target_job.`);
     }
+
+    validateSetupSteps(scenario?.setup_steps, `test-scenarios.scenarios[${index}].setup_steps`, errors);
+    validateSetupSteps(scenario?.journey_steps, `test-scenarios.scenarios[${index}].journey_steps`, errors);
   });
 
   return errors;

@@ -10,9 +10,12 @@ Auto-Jobs is a CLI-first toolkit for simulated user testing and automated custom
 - Generates virtual personas from your actors, jobs, and desired outcomes
 - Runs deterministic simulated interviews and writes markdown reports
 - Runs browser-based simulated user tests with Playwright
+- Can attach to an existing Chrome session via CDP for Chrome DevTools MCP-style control
 - Captures screenshots during test runs and includes them in reports
 - Uses `codex` or `claude` as the test harness for planning and visual analysis
 - Supports single-harness or dual-harness consensus analysis for browser decisions and vision summaries
+- Tracks explicit actor / planner / reviewer subagent provenance for each simulated run
+- Supports scripted browser setup and journey steps for login, form fill, upload, keyboard, and assertion flows
 - Falls back gracefully to deterministic heuristics when a harness is unavailable or times out
 - Tracks score history over time
 - Generates and serves a local single-file dashboard
@@ -25,14 +28,14 @@ The current MVP is strongest at:
 - Persona generation
 - Interview synthesis
 - Browser-based site inspection and scoring
+- Scripted authenticated flows and richer form interactions
 - Harness-assisted screenshot analysis with deterministic fallback
 - Codex / Claude harness switching
+- Explicit simulated subagent metadata
 - Local reports and dashboard views
 
 Not built yet:
 
-- Native MCP browser / desktop control integration
-- Rich form-filling workflows beyond click-first pathing
 - Slack or webhook notifications
 
 ## Install
@@ -112,6 +115,16 @@ node cli/index.js test \
   --url https://example.com
 ```
 
+Attach to an existing Chrome session:
+
+```bash
+node cli/index.js test \
+  --runner chrome-devtools-agent \
+  --cdp-url http://127.0.0.1:9222 \
+  --harness codex \
+  --url https://example.com
+```
+
 View reports and score history:
 
 ```bash
@@ -157,9 +170,13 @@ Useful flags:
 - `--scenario <scenarioId>`
 - `--persona <personaId>`
 - `--runner <runner>`
+- `--cdp-url <url>`
 - `--harness <harness>`
 - `--secondary-harness <harness>`
 - `--orchestration <mode>`
+- `--subagents`
+- `--subagent-execution <mode>`
+- `--max-reviewers <count>`
 - `--headed`
 - `--ci`
 - `--threshold <score>`
@@ -199,6 +216,49 @@ Typical generated files:
 - `scores/history.json`
 - `dashboard/index.html`
 
+## Scripted Scenarios
+
+Authenticated and form-heavy journeys can be declared directly in `config/test-scenarios.yaml`:
+
+```yaml
+scenarios:
+  - id: signed-in-dashboard
+    name: Reach the live dashboard
+    entry_url: /login
+    target_job: merchant_collect_cash
+    setup_steps:
+      - action: fill
+        label: Email address
+        value: demo@example.com
+      - action: fill
+        label: Password
+        value: demodemo
+      - action: click
+        role: button
+        name: Sign in
+    journey_steps:
+      - action: assert
+        url_includes: /dashboard
+      - action: click
+        text: Invoices
+      - action: assert
+        text: All Invoices
+```
+
+Supported step actions:
+
+- `goto`
+- `click`
+- `fill`
+- `select`
+- `upload`
+- `press`
+- `wait`
+- `assert`
+- `check`
+- `uncheck`
+- `hover`
+
 ## Harness Configuration
 
 Harnesses are configured in `config/project.yaml`:
@@ -210,11 +270,16 @@ ai:
     secondary: claude
     orchestration: single
     timeout_ms: 20000
+  subagents:
+    enabled: true
+    execution: sequential
+    max_reviewers: 2
 
 browser:
   runner: playwright-agent
   headless: true
   max_steps: 4
+  cdp_url: http://127.0.0.1:9222
 
 vision:
   enabled: true
@@ -240,6 +305,30 @@ Supported orchestration modes:
 
 - `single`
 - `consensus`
+
+Supported browser runners:
+
+- `playwright-agent`
+- `chrome-devtools-agent`
+- `deterministic-http`
+
+## Scenario Steps
+
+Scenarios can define `setup_steps` for authentication or environment prep, and `journey_steps` for deterministic rich flows before the exploratory agent takes over.
+
+Supported actions:
+
+- `goto`
+- `click`
+- `fill`
+- `select`
+- `upload`
+- `press`
+- `assert`
+- `wait`
+- `check`
+- `uncheck`
+- `hover`
 
 ## Scoring
 
