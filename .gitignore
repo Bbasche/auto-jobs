@@ -1,0 +1,7 @@
+node_modules/
+runs/
+scores/history.json
+config/*.yaml
+!config/.gitkeep
+.env
+.DS_Store
